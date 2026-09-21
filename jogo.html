@@ -2,94 +2,68 @@
 <html lang="pt-br">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Servente e Pedreiro - Construção</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Big Bag Factory Simulator - Catalão</title>
 <style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:Arial;touch-action:none}
-body{background:#87CEEB;overflow:hidden}
-#game{width:100vw;height:100vh;position:relative;background:linear-gradient(#87CEEB 0%, #87CEEB 60%, #d2b48c 60%)}
-#hud{position:absolute;top:0;left:0;right:0;background:#222;color:#fff;padding:10px;display:flex;justify-content:space-between;z-index:10}
-#muro{position:absolute;bottom:80px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column-reverse;align-items:center}
-.tijolo{width:60px;height:20px;background:#c1440e;border:2px solid #7a2a0a;margin:1px;border-radius:2px}
-#monte{position:absolute;bottom:80px;left:20px;width:80px;height:80px;background:#a0522d;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:40px}
-#pedreiro{position:absolute;bottom:80px;left:55%;font-size:50px;transition:0.3s}
-#servente{position:absolute;bottom:80px;left:30%;font-size:50px;z-index:5}
-#joystick{position:absolute;bottom:20px;left:20px;width:120px;height:120px;background:rgba(0,0,0,0.2);border-radius:50%}
-#stick{position:absolute;left:35px;top:35px;width:50px;height:50px;background:#fff;border-radius:50%}
-#btnPegar{position:absolute;bottom:30px;right:20px;padding:20px 30px;background:#e50914;color:#fff;border:none;border-radius:50px;font-weight:bold;font-size:18px}
-#msg{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;padding:20px;border-radius:10px;text-align:center;display:none;z-index:20}
+*{margin:0;padding:0;box-sizing:border-box;font-family:Arial}
+body{background:#111;color:#fff}
+#hud{background:#000;padding:12px;display:flex;justify-content:space-between;position:sticky;top:0}
+#factory{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:10px}
+.maquina{background:#222;border-radius:12px;padding:15px;text-align:center;border:2px solid #333;cursor:pointer}
+.maquina.ativa{border-color:#e50914;background:#2a1a1a}
+.maquina h3{margin:5px 0}
+.bar{height:12px;background:#000;border-radius:10px;margin:10px 0;overflow:hidden}
+.fill{height:100%;width:0%;background:#23a559;transition:.2s}
+.btn{padding:12px;background:#e50914;color:#fff;border:none;border-radius:6px;font-weight:bold;width:100%;margin-top:10px}
+#produto{grid-column:1/3;background:#1a1a1a;border-radius:12px;padding:20px;text-align:center}
+.bag{font-size:60px}
 </style>
 </head>
 <body>
-<div id="game">
-<div id="hud"><span>🧱 Tijolos: <b id="tijolos">0</b></span><span>Muro: <b id="altura">0</b>/20</span><span>💰 R$ <b id="dinheiro">0</b></span></div>
-<div id="monte">🧱<div style="position:absolute;bottom:-20px;font-size:12px;color:#000;background:#fff;padding:2px 5px;border-radius:5px">MONTE</div></div>
-<div id="muro"></div>
-<div id="pedreiro">👷‍♂️</div>
-<div id="servente">👷</div>
-<div id="joystick"><div id="stick"></div></div>
-<button id="btnPegar" onclick="acao()">PEGAR</button>
-<div id="msg"></div>
+<div id="hud"><span>🧵 Big Bag Factory</span><span>R$ <b id="money">0</b></span><span>📦 Feitos: <b id="total">0</b></span></div>
+<div style="padding:10px;font-size:12px;color:#888">Jogo fictício inspirado no trabalho de operador de célula de produção - processo genérico de sacaria</div>
+
+<div id="factory">
+<div class="maquina" id="m1" onclick="trabalhar(1)"><h3>1️⃣ TEAR</h3><p>Tecer o tecido</p><div class="bar"><div class="fill" id="f1"></div></div><button class="btn">TEAR</button></div>
+<div class="maquina" id="m2" onclick="trabalhar(2)"><h3>2️⃣ CORTE</h3><p>Cortar painéis</p><div class="bar"><div class="fill" id="f2"></div></div><button class="btn">CORTAR</button></div>
+<div class="maquina" id="m3" onclick="trabalhar(3)"><h3>3️⃣ COSTURA</h3><p>Costurar alças</p><div class="bar"><div class="fill" id="f3"></div></div><button class="btn">COSTURAR</button></div>
+<div class="maquina" id="m4" onclick="trabalhar(4)"><h3>4️⃣ PRENSA / FINAL</h3><p>Prensar e conferir</p><div class="bar"><div class="fill" id="f4"></div></div><button class="btn">FINALIZAR</button></div>
+
+<div id="produto">
+<div class="bag" id="bagIcon">📦</div>
+<h2 id="status">Comece no TEAR</h2>
+<p id="etapa">Etapa 0/4</p>
 </div>
+</div>
+
 <script>
-let x=30, y=0, carregando=false, tijolos=0, altura=0, dinheiro=0;
-let pedreiroX=55;
-const serventeEl=document.getElementById('servente');
-const pedreiroEl=document.getElementById('pedreiro');
-const muroEl=document.getElementById('muro');
-
-function update(){
- serventeEl.style.left=x+'%';
- serventeEl.innerHTML=carregando?'👷‍♂️🧱':'👷';
- document.getElementById('tijolos').innerText=tijolos;
- document.getElementById('altura').innerText=altura;
- document.getElementById('dinheiro').innerText=dinheiro;
- document.getElementById('btnPegar').innerText=carregando?'ENTREGAR':'PEGAR';
+let etapa=0, money=0, total=0;
+let progresso=[0,0,0,0,0];
+function trabalhar(num){
+ if(num!==etapa+1){ document.getElementById('status').innerText='Tem que seguir a ordem! Vai pra etapa '+(etapa+1); return; }
+ let fill=document.getElementById('f'+num);
+ let maq=document.getElementById('m'+num);
+ maq.classList.add('ativa');
+ let p=0;
+ let int=setInterval(()=>{
+  p+=10; progresso[num]=p; fill.style.width=p+'%';
+  if(p>=100){ clearInterval(int); maq.classList.remove('ativa'); etapa=num; if(etapa==4){ finalizarBag(); etapa=0; progresso=[0,0,0,0,0]; document.querySelectorAll('.fill').forEach(f=>f.style.width='0%'); } atualizar(); }
+ },80);
 }
-
-function acao(){
- // perto do monte
- if(x<25 &&!carregando){ carregando=true; tijolos++; update(); return; }
- // perto do pedreiro
- if(Math.abs(x-pedreiroX)<8 && carregando){
-   carregando=false; tijolos--;
-   altura++; dinheiro+=15;
-   let b=document.createElement('div'); b.className='tijolo'; muroEl.appendChild(b);
-   pedreiroEl.innerHTML='👷‍♂️🔨';
-   setTimeout(()=>pedreiroEl.innerHTML='👷‍♂️',300);
-   if(altura>=20){ vencer(); }
-   update();
- }
+function atualizar(){
+ document.getElementById('etapa').innerText='Etapa '+etapa+'/4';
+ let textos=['Comece no TEAR','Tecido pronto! Vai pro CORTE','Cortado! Vai pra COSTURA','Costurado! Vai pra PRENSA',''];
+ document.getElementById('status').innerText=textos[etapa];
 }
-
-function vencer(){
- document.getElementById('msg').style.display='block';
- document.getElementById('msg').innerHTML='<h2>🏆 OBRA CONCLUÍDA!</h2><p>Você e o pedreiro levantaram o muro!</p><p>R$ '+dinheiro+'</p><br><button onclick="location.reload()" style="padding:10px 20px;background:#23a559;color:#fff;border:none;border-radius:5px">JOGAR DE NOVO</button>';
+function finalizarBag(){
+ total++; money+=35;
+ document.getElementById('total').innerText=total;
+ document.getElementById('money').innerText=money;
+ document.getElementById('bagIcon').innerHTML='✅📦';
+ document.getElementById('status').innerText='BIG BAG PRONTO! +R$35';
+ setTimeout(()=>{document.getElementById('bagIcon').innerHTML='📦'; atualizar();},1000);
 }
-
-// controles
-let joy=document.getElementById('joystick'), stick=document.getElementById('stick'), dragging=false;
-joy.addEventListener('touchstart',()=>dragging=true);
-joy.addEventListener('touchend',()=>{dragging=false; stick.style.left='35px'; stick.style.top='35px';});
-joy.addEventListener('touchmove',e=>{
- if(!dragging)return;
- let r=joy.getBoundingClientRect();
- let tx=e.touches[0].clientX-r.left-60, ty=e.touches[0].clientY-r.top-60;
- if(tx<-40) x-=1.5; if(tx>40) x+=1.5;
- if(x<5) x=5; if(x>85) x=85;
- stick.style.left=(35+tx/3)+'px'; stick.style.top=(35+ty/3)+'px';
- update();
-});
-
-// teclado PC
-document.addEventListener('keydown',e=>{
- if(e.key=='ArrowLeft' || e.key=='a') x-=3;
- if(e.key=='ArrowRight' || e.key=='d') x+=3;
- if(e.key==' ') acao();
- if(x<5) x=5; if(x>85) x=85;
- update();
-});
-update();
+atualizar();
 </script>
 </body>
 </html>
